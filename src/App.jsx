@@ -34,6 +34,7 @@ const STRAINS = [
   { id: 's23', name: 'Gelato Auto', breeder: 'Fast Buds', thc: 26, cbd: 0.1, days: [63, 70], height: [60, 90], yield: '350-450', level: 'Intermedio/Avanzado' },
   { id: 's24', name: 'Banana Purple Punch Auto', breeder: 'Fast Buds', thc: 24, cbd: 0.2, days: [56, 56], height: [60, 90], yield: '350-400', level: 'Intermedio' },
   { id: 's25', name: 'Blackberry Auto', breeder: 'Fast Buds', thc: 22, cbd: 0.2, days: [56, 56], height: [60, 90], yield: '350-400', level: 'Intermedio' },
+  { id: 's53', name: 'Blueberry Auto', breeder: 'Fast Buds', thc: 22, cbd: 0.5, days: [56, 65], height: [75, 110], yield: '400-500', level: 'Principiante' },
 
   // Dutch Passion
   { id: 's26', name: 'Ultimate Auto', breeder: 'Dutch Passion', thc: 15, cbd: 0.2, days: [70, 84], height: [80, 130], yield: '500-600', level: 'Intermedio/Avanzado' },
@@ -44,6 +45,7 @@ const STRAINS = [
   // Mr Smile Seeds
   { id: 's50', name: 'Jack Mist Auto', breeder: 'Mr Smile Seeds', thc: 20, cbd: 0, days: [60, 65], height: [50, 100], yield: '400-550', level: 'Intermedio' },
   { id: 's51', name: 'White Widow Auto', breeder: 'Mr Smile Seeds', thc: 20, cbd: 0, days: [55, 65], height: [40, 80], yield: '300-400', level: 'Principiante' },
+  { id: 's52', name: 'Moby Dick Auto', breeder: 'Mr Smile Seeds', thc: 20, cbd: 0, days: [60, 70], height: [60, 110], yield: '500-650', level: 'Intermedio' },
 
   // Seedstockers / Auto Seeds (clásicas)
   { id: 's29', name: 'Skunk Auto', breeder: 'Seedstockers', thc: 16, cbd: 0.3, days: [56, 63], height: [50, 90], yield: '300-350', level: 'Principiante' },
