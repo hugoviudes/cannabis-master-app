@@ -42,6 +42,9 @@ const STRAINS = [
   { id: 's28', name: 'Cinderella Jack Auto', breeder: 'Dutch Passion', thc: 22, cbd: 0.2, days: [63, 70], height: [60, 100], yield: '350-400', level: 'Intermedio' },
   { id: 's49', name: 'Auto Power Plant', breeder: 'Dutch Passion', thc: 20, cbd: 0.2, days: [84, 98], height: [75, 125], yield: '500-600', level: 'Intermedio' },
 
+  // Billy Seeds Co. (BSEEDs) — breeder argentino registrado en INASE
+  { id: 's54', name: 'OG Sour #1 x Deep Chunk', breeder: 'Billy Seeds Co.', thc: 22, cbd: 0.1, days: [70, 77], height: [80, 120], yield: '400-500', level: 'Intermedio/Avanzado', type: 'photo', regular: true },
+
   // Mr Smile Seeds
   { id: 's50', name: 'Jack Mist Auto', breeder: 'Mr Smile Seeds', thc: 20, cbd: 0, days: [60, 65], height: [50, 100], yield: '400-550', level: 'Intermedio' },
   { id: 's51', name: 'White Widow Auto', breeder: 'Mr Smile Seeds', thc: 20, cbd: 0, days: [55, 65], height: [40, 80], yield: '300-400', level: 'Principiante' },
@@ -128,28 +131,40 @@ function diarioUid() {
   return Math.random().toString(36).slice(2, 10);
 }
 
-function computeSchedule(strain, startDateStr) {
-  const totalDays = Math.round((strain.days[0] + strain.days[1]) / 2);
-  const start = new Date(startDateStr + 'T00:00:00');
+function computeSchedule(strain, startDateStr, vegWeeks) {
+  const isPhoto = strain.type === 'photo';
+  const floweringDays = Math.round((strain.days[0] + strain.days[1]) / 2);
 
-  // Calcula duraciones garantizando que la suma sea exactamente totalDays
-  // (evita drift por redondeo acumulado en cada fase)
-  const rawDurations = PHASE_TEMPLATE.map(p => p.pct * totalDays);
-  const flooredDurations = rawDurations.map(d => Math.max(1, Math.floor(d)));
-  let remainder = totalDays - flooredDurations.reduce((a, b) => a + b, 0);
-  // Distribuye los días restantes a las fases con mayor parte decimal perdida
-  const remainders = rawDurations.map((d, i) => ({ i, frac: d - Math.floor(d) }))
-    .sort((a, b) => b.frac - a.frac);
-  let idx = 0;
-  while (remainder > 0 && idx < remainders.length) {
-    flooredDurations[remainders[idx].i] += 1;
-    remainder--;
-    idx++;
+  // Para fotoperiódicas: germinação + plântula fixas, vegetativo controlado pelo grower,
+  // floração = dias indicados pela strain, pré-flora + maturação fixas.
+  // Para automáticas: lógica original com percentuais sobre o ciclo total.
+  let phaseDurations;
+
+  if (isPhoto) {
+    const vegDays = (vegWeeks || 4) * 7;
+    // Fases fixas para foto: germ 4d, plântula 10d, veg_early/late = vegDays dividido,
+    // preflora 10d, floração early/peak = flowering, maturação 10d
+    const vegEarly = Math.round(vegDays * 0.5);
+    const vegLate = vegDays - vegEarly;
+    const flowerEarly = Math.round(floweringDays * 0.45);
+    const flowerPeak = floweringDays - flowerEarly;
+    phaseDurations = [4, 10, vegEarly, vegLate, 10, flowerEarly, flowerPeak, 10];
+  } else {
+    const totalDays = floweringDays;
+    const rawDurations = PHASE_TEMPLATE.map(p => p.pct * totalDays);
+    const floored = rawDurations.map(d => Math.max(1, Math.floor(d)));
+    let remainder = totalDays - floored.reduce((a, b) => a + b, 0);
+    const rems = rawDurations.map((d, i) => ({ i, frac: d - Math.floor(d) })).sort((a, b) => b.frac - a.frac);
+    let ri = 0;
+    while (remainder > 0 && ri < rems.length) { floored[rems[ri].i] += 1; remainder--; ri++; }
+    phaseDurations = floored;
   }
 
+  const totalDays = phaseDurations.reduce((a, b) => a + b, 0);
+  const start = new Date(startDateStr + 'T00:00:00');
   let cursor = 0;
   const schedule = PHASE_TEMPLATE.map((phase, i) => {
-    const dur = flooredDurations[i];
+    const dur = phaseDurations[i];
     const phaseStart = addDays(start, cursor);
     const phaseEnd = addDays(start, cursor + dur - 1);
     cursor += dur;
@@ -160,7 +175,7 @@ function computeSchedule(strain, startDateStr) {
 
 function getProgress(plant) {
   const strain = STRAINS.find(s => s.id === plant.strainId) || STRAINS[0];
-  const { schedule, totalDays } = computeSchedule(strain, plant.startDate);
+  const { schedule, totalDays } = computeSchedule(strain, plant.startDate, plant.vegWeeks);
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const start0 = new Date(plant.startDate + 'T00:00:00');
   const elapsedDays = Math.floor((today - start0) / 86400000);
@@ -233,6 +248,10 @@ function DiarioModule() {
     persist(plants.map(p => p.id === id ? { ...p, name } : p));
   };
 
+  const updateVegWeeks = (id, weeks) => {
+    persist(plants.map(p => p.id === id ? { ...p, vegWeeks: weeks } : p));
+  };
+
   const addLogEntry = (plantId, entry) => {
     const newEntry = { id: diarioUid(), createdAt: Date.now(), ...entry };
     persist(plants.map(p =>
@@ -293,6 +312,7 @@ function DiarioModule() {
           onDelete={(id) => { deletePlant(id); setView({ screen: 'cover' }); }}
           onAddLog={addLogEntry}
           onDeleteLog={deleteLogEntry}
+          onUpdateVegWeeks={updateVegWeeks}
         />
       )}
       {showAddModal && (
@@ -723,7 +743,7 @@ const diarioBtnStyle = {
   padding: '11px 16px', borderRadius: 7, fontSize: 14, cursor: 'pointer', border: 'none',
 };
 
-function DetailScreen({ plant, onBack, onRename, onArchive, onDelete, onAddLog, onDeleteLog }) {
+function DetailScreen({ plant, onBack, onRename, onArchive, onDelete, onAddLog, onDeleteLog, onUpdateVegWeeks }) {
   const [expandedPhase, setExpandedPhase] = useState(null);
   const [editingName, setEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState(plant?.name || '');
@@ -784,7 +804,21 @@ function DetailScreen({ plant, onBack, onRename, onArchive, onDelete, onAddLog, 
         }}>
           <DiarioStat label="THC" value={`${strain.thc}%`} accent="#E0A05E" />
           <DiarioStat label="CBD" value={`${strain.cbd}%`} accent="#E8674A" />
-          <DiarioStat label="Ciclo" value={`${strain.days[0]}–${strain.days[1]}d`} accent="#F5EBE0" />
+          <DiarioStat label={strain.type === 'photo' ? 'Floración' : 'Ciclo'} value={`${strain.days[0]}–${strain.days[1]}d`} accent="#F5EBE0" />
+          {strain.type === 'photo' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              <div className="mono" style={{ fontSize: 10, color: '#9C8070', letterSpacing: '0.04em' }}>VEGETATIVO</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <button onClick={() => onUpdateVegWeeks(plant.id, Math.max(1, (plant.vegWeeks || 4) - 1))}
+                  style={{ background: '#4A3528', border: 'none', borderRadius: 4, color: '#F5EBE0', width: 24, height: 24, cursor: 'pointer', fontSize: 14, fontWeight: 700 }}>−</button>
+                <span style={{ fontSize: 16, fontWeight: 700, color: '#E8674A', minWidth: 60, textAlign: 'center' }}>
+                  {plant.vegWeeks || 4} sem
+                </span>
+                <button onClick={() => onUpdateVegWeeks(plant.id, Math.min(16, (plant.vegWeeks || 4) + 1))}
+                  style={{ background: '#4A3528', border: 'none', borderRadius: 4, color: '#F5EBE0', width: 24, height: 24, cursor: 'pointer', fontSize: 14, fontWeight: 700 }}>+</button>
+              </div>
+            </div>
+          )}
           <DiarioStat label="Altura" value={`${strain.height[0]}–${strain.height[1]}cm`} accent="#F5EBE0" />
           <DiarioStat label="Rendimiento" value={`${strain.yield} g/m²`} accent="#E8674A" />
           <div style={{ flex: '1 1 140px', textAlign: 'right' }}>
@@ -808,7 +842,8 @@ function DetailScreen({ plant, onBack, onRename, onArchive, onDelete, onAddLog, 
                   key={p.id}
                   title={`${p.name}: ${TRICHOME_LABEL[p.trichome]}`}
                   style={{
-                    flex: p.pct, background: trichomeColors[p.trichome],
+                    flex: p.duration,
+                    background: trichomeColors[p.trichome],
                     opacity: isPast ? 1 : isCurrent ? 0.95 : 0.35,
                     borderRight: i < schedule.length - 1 ? '1px solid #1E1410' : 'none',
                     position: 'relative',
