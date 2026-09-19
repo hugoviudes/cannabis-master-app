@@ -49,6 +49,8 @@ const STRAINS = [
   { id: 's50', name: 'Jack Mist Auto', breeder: 'Mr Smile Seeds', thc: 20, cbd: 0, days: [60, 65], height: [50, 100], yield: '400-550', level: 'Intermedio' },
   { id: 's51', name: 'White Widow Auto', breeder: 'Mr Smile Seeds', thc: 20, cbd: 0, days: [55, 65], height: [40, 80], yield: '300-400', level: 'Principiante' },
   { id: 's52', name: 'Moby Dick Auto', breeder: 'Mr Smile Seeds', thc: 20, cbd: 0, days: [60, 70], height: [60, 110], yield: '500-650', level: 'Intermedio' },
+  { id: 's55', name: 'Peyote Purple Auto', breeder: 'Mr Smile Seeds', thc: 20, cbd: 0, days: [55, 65], height: [40, 80], yield: '300-400', level: 'Principiante' },
+  { id: 's56', name: 'Critical 47 Auto', breeder: 'Mr Smile Seeds', thc: 20, cbd: 0, days: [70, 80], height: [60, 110], yield: '500-600', level: 'Intermedio' },
 
   // Seedstockers / Auto Seeds (clásicas)
   { id: 's29', name: 'Skunk Auto', breeder: 'Seedstockers', thc: 16, cbd: 0.3, days: [56, 63], height: [50, 90], yield: '300-350', level: 'Principiante' },
